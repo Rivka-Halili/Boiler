@@ -1,0 +1,81 @@
+<html>
+<head>
+  <title>Line Chart JS</title>
+  <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <style type="text/css">
+    html, body, #container {
+      width: 100%; height: 100%; margin: 0; padding: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="container"></div>
+<script>
+  anychart.onDocumentReady(function () {
+    // Make an API request using axios
+    axios.get('http://84.228.111.6:11111/boilers/getDailyData?Id=4793492').then(function (response) {
+        // Assuming the API response contains an array of data similar to rawData
+        var apiData = response.data;
+
+        // Your existing data processing logic
+        var specificValuesFromArray = apiData.map(obj => [obj.Data.slice(obj.Data.indexOf("TIME:")+5, obj.Data.indexOf("TIME:")+10),
+                                                         obj.Data.split(':')[1].slice(1, -1).split(',')[0],
+                                                         obj.Data.split(':')[1].slice(1, -1).split(',')[1],
+                                                         obj.Data.split(':')[1].slice(1, -1).split(',')[4]]);
+
+        var dataSet = anychart.data.set(specificValuesFromArray);
+        var firstSeriesData = dataSet.mapAs({x: 0, value: 2});
+        var secondSeriesData = dataSet.mapAs({x: 0, value: 3});
+
+        // Create the chart and add series
+        var chart = anychart.line();
+        var firstSeries = chart.line(firstSeriesData);
+        firstSeries.name("boiler");
+        var secondSeries = chart.line(secondSeriesData);
+        secondSeries.name("outside");
+
+         // add a legend and customize it
+        chart.legend().enabled(true).fontSize(14).padding([10, 0, 10, 0]);
+
+        // add a title and customize it
+        chart
+          .title()
+          .enabled(true)
+          .useHtml(true)
+          .text('Last 24 hours');
+
+        // name the axes
+        chart.yAxis().title("Celsius");
+        chart.xAxis().title("Time");
+
+        // customize the series markers
+        firstSeries.hovered().markers().type("circle").size(4);
+        secondSeries.hovered().markers().type("circle").size(4);
+
+        // turn on crosshairs and remove the y hair
+        chart.crosshair().enabled(true).yStroke(null).yLabel(true);
+
+        // change the tooltip position
+        chart.tooltip().positionMode("point");
+        chart.tooltip().position("right").anchor("left-center").offsetX(5).offsetY(5);
+
+        // customize the series stroke in the normal state
+        firstSeries.normal().stroke("#7b60a2", 2.5);
+        secondSeries.normal().stroke("#db7346", 2.5);
+
+        // specify where to display the chart
+        chart.container("container");
+
+        // draw the resulting chart
+        chart.draw();
+
+      })
+      .catch(function (error) {
+        console.error('Error fetching data from API:', error);
+      });
+  });
+</script>
+</body>
+</html>
