@@ -1,81 +1,133 @@
 <html>
 <head>
-  <title>Line Chart JS</title>
-  <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>Line Chart JS</title>
+    <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-  <style type="text/css">
-    html, body, #container {
-      width: 100%; height: 100%; margin: 0; padding: 0;
-    }
-  </style>
+    <style type="text/css">
+        html, body, #container {
+            width: 100%; height: 100%; margin: 0; padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            /*display: flex;*/
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .input-container {
+            display: flex;
+            max-width: 300px;
+        }
+
+        input {
+            /*flex: 1;*/
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+            outline: none;
+        }
+
+        button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 0 4px 4px 0;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+
+<input type="number" id="numberInput" placeholder="Enter number of days ago...">
+<button onclick="drawChart(document.getElementById('numberInput').value)">Submit</button>
 <div id="container"></div>
 <script>
-  anychart.onDocumentReady(function () {
-    // Make an API request using axios
-    axios.get('http://84.228.111.6:11111/boilers/getDailyData?Id=4793492').then(function (response) {
-        // Assuming the API response contains an array of data similar to rawData
-        var apiData = response.data;
+    function drawChart(days = 2){
+       // anychart.onDocumentReady( () =>{
+        document.getElementById('container').innerHTML = ""
+        // Make an API request using axios
+            axios.get('http://84.228.111.6:11111/boilers/getDataDay?Id=15602865&day='+days).then(function (response) {
+                // Assuming the API response contains an array of data similar to rawData
+                const apiData = response.data;
+                // Your existing data processing logic
+                const specificValuesFromArray = apiData.map(obj => [
+                    // obj.Data.slice(obj.Data.indexOf("DATE:") + 5, obj.Data.indexOf("DATE:") + 7) + "." +
+                    // obj.Data.slice(obj.Data.indexOf("DATE:") + 8, obj.Data.indexOf("DATE:") + 10) + " " +
+                    // obj.Data.slice(obj.Data.indexOf("TIME:") + 5, obj.Data.indexOf("TIME:") + 10),
+                    obj.Data.slice(obj.Data.indexOf("DATE:") + 5, obj.Data.indexOf("TIME:") + 10),
+                    obj.Data.split(':')[1].slice(1, -1).split(',')[0],
+                    obj.Data.split(':')[1].slice(1, -1).split(',')[1],
+                    obj.Data.split(':')[1].slice(1, -1).split(',')[2],
+                    obj.Data.split(':')[1].slice(1, -1).split(',')[3],
+                    obj.Data.split(':')[1].slice(1, -1).split(',')[4]]);
 
-        // Your existing data processing logic
-        var specificValuesFromArray = apiData.map(obj => [obj.Data.slice(obj.Data.indexOf("TIME:")+5, obj.Data.indexOf("TIME:")+10),
-                                                         obj.Data.split(':')[1].slice(1, -1).split(',')[0],
-                                                         obj.Data.split(':')[1].slice(1, -1).split(',')[1],
-                                                         obj.Data.split(':')[1].slice(1, -1).split(',')[4]]);
+                const dataSet = anychart.data.set(specificValuesFromArray);
+                const onOffSeriesData = dataSet.mapAs({x: 0, value: 1});
+                const boiler1SeriesData = dataSet.mapAs({x: 0, value: 2});
+                const boiler2SeriesData = dataSet.mapAs({x: 0, value: 3});
+                const boiler3SeriesData = dataSet.mapAs({x: 0, value: 4});
+                const outsideSeriesData = dataSet.mapAs({x: 0, value: 5});
 
-        var dataSet = anychart.data.set(specificValuesFromArray);
-        var firstSeriesData = dataSet.mapAs({x: 0, value: 2});
-        var secondSeriesData = dataSet.mapAs({x: 0, value: 3});
+                // Create the chart and add series
+                const chart = anychart.line();
+                const onOffSeries = chart.line(onOffSeriesData);
+                onOffSeries.name("onOff");
+                const boiler1Series = chart.line(boiler1SeriesData);
+                boiler1Series.name("boiler1");
+                const boiler2Series = chart.line(boiler2SeriesData);
+                boiler2Series.name("boiler2");
+                const boiler3Series = chart.line(boiler3SeriesData);
+                boiler3Series.name("boiler3");
+                const outsideSeries = chart.line(outsideSeriesData);
+                outsideSeries.name("outside");
 
-        // Create the chart and add series
-        var chart = anychart.line();
-        var firstSeries = chart.line(firstSeriesData);
-        firstSeries.name("boiler");
-        var secondSeries = chart.line(secondSeriesData);
-        secondSeries.name("outside");
+                // add a legend and customize it
+                chart.legend().enabled(true).fontSize(14).padding([10, 0, 10, 0]);
 
-         // add a legend and customize it
-        chart.legend().enabled(true).fontSize(14).padding([10, 0, 10, 0]);
+                // add a title and customize it
+                chart.title()
+                    .enabled(true)
+                    .useHtml(true)
+                    .text('Last '+ days+ ' days');
 
-        // add a title and customize it
-        chart
-          .title()
-          .enabled(true)
-          .useHtml(true)
-          .text('Last 24 hours');
+                // name the axes
+                chart.yAxis().title("Celsius");
+                chart.xAxis().title("Time");
 
-        // name the axes
-        chart.yAxis().title("Celsius");
-        chart.xAxis().title("Time");
+                // customize the series markers
+                // onOffSeries.hovered().markers().type("circle").size(4);
+                // boiler1Series.hovered().markers().type("circle").size(4);
 
-        // customize the series markers
-        firstSeries.hovered().markers().type("circle").size(4);
-        secondSeries.hovered().markers().type("circle").size(4);
+                // turn on crosshairs and remove the y hair
+                // chart.crosshair().enabled(true).yStroke("#7b60a2").yLabel(true);
 
-        // turn on crosshairs and remove the y hair
-        chart.crosshair().enabled(true).yStroke(null).yLabel(true);
+                // change the tooltip position
+                // chart.tooltip().positionMode("point");
+                // chart.tooltip().position("right").anchor("left-center").offsetX(5).offsetY(5);
 
-        // change the tooltip position
-        chart.tooltip().positionMode("point");
-        chart.tooltip().position("right").anchor("left-center").offsetX(5).offsetY(5);
+                // customize the series stroke in the normal state
+                // onOffSeries.normal().stroke("#7b60a2", 2.5);
+                // boiler1Series.normal().stroke("#db7346", 2.5);
 
-        // customize the series stroke in the normal state
-        firstSeries.normal().stroke("#7b60a2", 2.5);
-        secondSeries.normal().stroke("#db7346", 2.5);
 
-        // specify where to display the chart
-        chart.container("container");
+                // specify where to display the chart
+                chart.container("container");
 
-        // draw the resulting chart
-        chart.draw();
+                // draw the resulting chart
+                chart.draw();
 
-      })
-      .catch(function (error) {
-        console.error('Error fetching data from API:', error);
-      });
-  });
+            })
+                .catch(function (error) {
+                    console.error('Error fetching data from API:', error);
+                });
+        //});
+    }
+
+    drawChart(3);
 </script>
 </body>
 </html>
