@@ -46,7 +46,7 @@
 <button onclick="drawChart(document.getElementById('numberInput').value)">Submit</button>
 <div id="container"></div>
 <script>
-    function drawChart(days = 2){
+    function drawChart(days = 3){
        // anychart.onDocumentReady( () =>{
         document.getElementById('container').innerHTML = ""
         // Make an API request using axios
@@ -54,17 +54,15 @@
                 // Assuming the API response contains an array of data similar to rawData
                 const apiData = response.data;
                 // Your existing data processing logic
-                const specificValuesFromArray = apiData.map(obj => [
-                    // obj.Data.slice(obj.Data.indexOf("DATE:") + 5, obj.Data.indexOf("DATE:") + 7) + "." +
-                    // obj.Data.slice(obj.Data.indexOf("DATE:") + 8, obj.Data.indexOf("DATE:") + 10) + " " +
-                    // obj.Data.slice(obj.Data.indexOf("TIME:") + 5, obj.Data.indexOf("TIME:") + 10),
-                    obj.Data.slice(obj.Data.indexOf("DATE:") + 5, obj.Data.indexOf("TIME:") + 10),
+                const specificValuesFromArray = apiData
+                    .filter(obj => obj.Time !== null) // Filter out data points with null Time
+                    .map(obj => [new Date(parseInt(obj.Time)),
                     obj.Data.split(':')[1].slice(1, -1).split(',')[0],
                     obj.Data.split(':')[1].slice(1, -1).split(',')[1],
                     obj.Data.split(':')[1].slice(1, -1).split(',')[2],
                     obj.Data.split(':')[1].slice(1, -1).split(',')[3],
-                    obj.Data.split(':')[1].slice(1, -1).split(',')[4]]);
-
+                    obj.Data.split(':')[1].slice(1, -1).split(',')[4]
+                    ]);
                 const dataSet = anychart.data.set(specificValuesFromArray);
                 const onOffSeriesData = dataSet.mapAs({x: 0, value: 1});
                 const boiler1SeriesData = dataSet.mapAs({x: 0, value: 2});
@@ -98,22 +96,38 @@
                 chart.yAxis().title("Celsius");
                 chart.xAxis().title("Time");
 
-                // customize the series markers
-                // onOffSeries.hovered().markers().type("circle").size(4);
-                // boiler1Series.hovered().markers().type("circle").size(4);
+                // Set the X-axis type to 'dateTime'
+                chart.xScale('dateTime');
 
-                // turn on crosshairs and remove the y hair
-                // chart.crosshair().enabled(true).yStroke("#7b60a2").yLabel(true);
+                // adjust tooltips
+               // onOffSeries.tooltip().format('');
 
-                // change the tooltip position
-                // chart.tooltip().positionMode("point");
-                // chart.tooltip().position("right").anchor("left-center").offsetX(5).offsetY(5);
+                chart.tooltip().titleFormat(function () {
+                    var value = (this.x);
+                    var date = new Date(value);
+                    var options = {
+                        hour: "numeric",
+                        minute: "numeric",
+                        day: "numeric",
+                        month: "numeric",
+                        year: "numeric"
+                    };
+                    var transformedDate =  date.toLocaleString("he-IL", options);
+                    return transformedDate;
+                });
 
-                // customize the series stroke in the normal state
-                // onOffSeries.normal().stroke("#7b60a2", 2.5);
-                // boiler1Series.normal().stroke("#db7346", 2.5);
+                // adjust axis labels
+                var labels = chart.xAxis().labels();
+               // chart.xAxis().labels().rotation(-45)
 
-
+                labels.format(function(value){
+                    var date = new Date(value["tickValue"]);
+                    var options = {
+                        hour: "numeric",
+                        minute: "numeric"
+                    }
+                  return date.toLocaleString("he-IL", options);
+                });
                 // specify where to display the chart
                 chart.container("container");
 
